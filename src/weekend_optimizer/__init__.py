@@ -1,19 +1,36 @@
-"""Weekend Optimizer: schedule a weekend with the Hungarian algorithm."""
+"""Weekend Optimizer: plan a semester of weekend trips with the Hungarian algorithm."""
 
 from .hungarian import minimize, solve
-from .models import Activity, TimeBlock, default_weekend
-from .scheduler import optimize_weekend, score, Schedule, Assignment
+from .models import City, Weekend, MADRID, SUGGESTED_CITIES, semester_weekends
+from .providers import (
+    Event,
+    EventProvider,
+    FlightProvider,
+    SampleEventProvider,
+    SampleFlightProvider,
+)
+from .scoring import Weights, build_value_matrix, event_value
+from .optimizer import plan_trips, TripPlan, TripAssignment
 
 __all__ = [
     "minimize",
     "solve",
-    "Activity",
-    "TimeBlock",
-    "default_weekend",
-    "optimize_weekend",
-    "score",
-    "Schedule",
-    "Assignment",
+    "City",
+    "Weekend",
+    "MADRID",
+    "SUGGESTED_CITIES",
+    "semester_weekends",
+    "Event",
+    "EventProvider",
+    "FlightProvider",
+    "SampleEventProvider",
+    "SampleFlightProvider",
+    "Weights",
+    "build_value_matrix",
+    "event_value",
+    "plan_trips",
+    "TripPlan",
+    "TripAssignment",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

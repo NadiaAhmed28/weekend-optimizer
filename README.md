@@ -1,28 +1,44 @@
 # Weekend Optimizer
 
-Schedule a weekend by treating it as an assignment problem and solving it with
-the Hungarian algorithm.
+Plan a semester of weekend trips by treating it as an assignment problem and
+solving it with the Hungarian algorithm.
 
-You have time blocks (Saturday morning, Sunday evening, ...) and a list of
-things you want to get done. Each activity is worth more in some blocks than
-others — a run is better in the morning, a call home is better in the evening.
-The optimizer scores every activity/block pair and finds the one-to-one
-assignment that maximizes total value across the whole weekend.
+You're based in one city (Madrid, in the default example) for a semester. You
+have a set of weekends and a set of places you'd like to visit. Each
+city/weekend pairing is worth more when something good is happening there
+(a festival, an artist you like) and when the flight is cheap. The optimizer
+scores every pairing and assigns one city per weekend to maximize total value
+across the whole semester.
 
-The Hungarian (Kuhn-Munkres) solver is implemented from scratch in pure Python,
-O(n^3), with no third-party dependencies in the core.
+The Hungarian (Kuhn-Munkres) solver is implemented from scratch in pure
+Python, O(n^3), with no third-party dependencies in the core.
 
 ## How it works
 
-1. **Model** the weekend as activities (rows) and time blocks (columns).
-2. **Score** each pair with a customizable value function that rewards
-   time-of-day fit, energy fit, and priority.
-3. **Solve** the resulting value matrix with the Hungarian algorithm to get the
-   assignment with the highest total value.
+1. **Model** the semester as cities (rows) and weekends (columns).
+2. **Score** each city/weekend pair: normalize event value and flight cost
+   across all pairs, then blend them with a weight you control.
+3. **Solve** the value matrix with the Hungarian algorithm for the highest
+   total-value assignment.
 
-When there are more activities than blocks, the least valuable activities are
-left unscheduled. When there are more blocks than activities, the extra blocks
-stay empty. Both fall out of padding the matrix to a square.
+More cities than weekends: the least valuable cities are left unplaced. More
+weekends than cities: the extra weekends stay free. Both fall out of padding
+the matrix to a square.
+
+## Data providers
+
+Flight prices and events come through two small interfaces
+(`FlightProvider`, `EventProvider`), so the optimizer is decoupled from any
+one data source. The repo ships deterministic sample providers so everything
+runs and is testable immediately. Real sources plug in behind the same
+interfaces:
+
+- **Events** — the Ticketmaster Discovery API gives a free key on signup with
+  global coverage; searching by artist name covers "is someone I like
+  playing." Favorite artists can later be pulled from Spotify.
+- **Flights** — flight-price APIs are in flux (Amadeus and Kiwi closed their
+  free developer tiers in 2026), so the flight provider is a clean seam to
+  drop in whatever source you settle on.
 
 ## Install
 
@@ -31,7 +47,7 @@ git clone https://github.com/<your-username>/weekend-optimizer.git
 cd weekend-optimizer
 ```
 
-The core has no dependencies. For the tests (correctness is validated against
+The core has no dependencies. For the tests (the solver is validated against
 `scipy.optimize.linear_sum_assignment`):
 
 ```bash
@@ -41,36 +57,35 @@ pip install -r requirements-dev.txt
 ## Usage
 
 ```python
-from weekend_optimizer import Activity, optimize_weekend
+from datetime import date
+from weekend_optimizer import City, plan_trips, semester_weekends, Weights
 
-activities = [
-    Activity("Long run",   preferred_period="morning", energy="high", priority=4),
-    Activity("Side project", preferred_period="morning", energy="high", priority=5),
-    Activity("Call family", preferred_period="evening", energy="low",  priority=4),
+weekends = semester_weekends(date(2027, 1, 18), date(2027, 5, 15))
+cities = [
+    City("Lisbon", "Portugal", "LIS"),
+    City("Barcelona", "Spain", "BCN"),
+    City("Berlin", "Germany", "BER"),
 ]
 
-schedule = optimize_weekend(activities)
-print(schedule.show())
+plan = plan_trips(cities, weekends, weights=Weights(event=0.6, flight=0.4))
+print(plan.show())
 ```
 
 Run the full example:
 
 ```bash
-python examples/sample_weekend.py
+python examples/plan_semester.py
 ```
 
 Sample output:
 
 ```
-Saturday morning     Deep work: side project  (+25.0)
-Saturday afternoon   Grocery run              (+21.0)
-Saturday evening     Call family              (+23.0)
-Sunday morning       Long run                 (+23.0)
-Sunday afternoon     Laundry                  (+16.5)
-Sunday evening       Read                     (+19.0)
-
-Not scheduled: Meal prep
-Total value: 127.5
+W03 Feb 05-07  ->  Seville     EUR 40    Feria de Sevilla
+W05 Feb 19-21  ->  Berlin      EUR 149   Favorite artist live
+W07 Mar 05-07  ->  Rome        EUR 128   Rome Jazz Festival
+W09 Mar 19-21  ->  Barcelona   EUR 34    -
+...
+Total score: 522.5
 ```
 
 ## Layout
@@ -78,14 +93,13 @@ Total value: 127.5
 ```
 src/weekend_optimizer/
   hungarian.py    from-scratch Hungarian algorithm (minimize + solve)
-  models.py       Activity, TimeBlock, default weekend
-  scheduler.py    scoring + optimize_weekend
+  models.py       City, Weekend, semester weekend generation
+  providers.py    Flight/Event interfaces + sample implementations
+  scoring.py      normalize + blend events and flight cost into a value matrix
+  optimizer.py    build the matrix from providers and solve
 examples/         runnable demo
-tests/            unit tests, validated against scipy
+tests/            unit tests, solver validated against scipy
 ```
-
-The scoring function in `scheduler.py` is the part meant to be tuned — it is a
-single function so preferences are easy to change.
 
 ## Tests
 
@@ -93,16 +107,14 @@ single function so preferences are easy to change.
 python -m pytest tests/ -q
 ```
 
-Tests check the solver against a brute-force reference on small matrices and
-against scipy on larger random ones.
-
 ## Roadmap
 
-- FastAPI backend exposing the optimizer
-- React front end to enter activities and view the schedule
-- Learn scoring weights from user feedback instead of hand-tuning them
-- Hard constraints (fixed events) and multi-block activities
-- Export the schedule to `.ics` / Google Calendar
+- Ticketmaster Discovery provider for real events
+- A real flight-price provider behind `FlightProvider`
+- Pull favorite artists from Spotify to drive event search
+- Mark weekends as no-travel; pin a city to a fixed weekend
+- FastAPI backend + React front end to enter trips and view the plan
+- Export the plan to `.ics` / Google Calendar
 
 ## License
 

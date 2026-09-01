@@ -1,7 +1,7 @@
 [project]
 name = "weekend-optimizer"
-version = "0.1.0"
-description = "Schedule a weekend as an assignment problem, solved with the Hungarian algorithm."
+version = "0.2.0"
+description = "Plan a semester of weekend trips as an assignment problem, solved with the Hungarian algorithm."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

@@ -1,45 +1,62 @@
-"""Data models for the weekend scheduling problem."""
+"""Data models for the weekend travel optimizer."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
-# Ordered so scoring can compare "distance" between energy levels.
-ENERGY = {"low": 0, "medium": 1, "high": 2}
-PERIODS = ("morning", "afternoon", "evening")
+from dataclasses import dataclass
+from datetime import date, timedelta
 
 
-@dataclass
-class Activity:
-    """Something you want to get done this weekend.
-
-    preferred_period: "morning" | "afternoon" | "evening" | "any"
-    energy:           demand of the activity: "low" | "medium" | "high"
-    priority:         1 (nice-to-have) .. 5 (must-do)
-    """
+@dataclass(frozen=True)
+class City:
     name: str
-    preferred_period: str = "any"
-    energy: str = "medium"
-    priority: int = 3
+    country: str
+    airport: str          # IATA code, e.g. "LIS"
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.country})"
 
 
-@dataclass
-class TimeBlock:
-    """A slot in the weekend you can fill with one activity."""
-    day: str          # e.g. "Saturday"
-    period: str       # one of PERIODS
-    energy: str = "medium"   # how much energy you tend to have then
+@dataclass(frozen=True)
+class Weekend:
+    index: int
+    start: date           # Friday
+    end: date             # Sunday
+    available: bool = True
 
     @property
     def label(self) -> str:
-        return f"{self.day} {self.period}"
+        return f"W{self.index:02d} {self.start.strftime('%b %d')}-{self.end.strftime('%d')}"
 
 
-def default_weekend() -> list[TimeBlock]:
-    """A typical energy curve: mornings high, evenings low."""
-    blocks = []
-    curve = {"morning": "high", "afternoon": "medium", "evening": "low"}
-    for day in ("Saturday", "Sunday"):
-        for period in PERIODS:
-            blocks.append(TimeBlock(day=day, period=period, energy=curve[period]))
-    return blocks
+def semester_weekends(start: date, end: date) -> list[Weekend]:
+    """Every Friday-to-Sunday weekend between start and end."""
+    d = start
+    while d.weekday() != 4:            # 4 = Friday
+        d += timedelta(days=1)
+    weekends = []
+    i = 1
+    while d <= end:
+        weekends.append(Weekend(index=i, start=d, end=d + timedelta(days=2)))
+        d += timedelta(days=7)
+        i += 1
+    return weekends
+
+
+MADRID = City("Madrid", "Spain", "MAD")
+
+# Built-in candidates for the "suggest destinations too" path: cities that
+# make sense as a weekend trip from Madrid.
+SUGGESTED_CITIES = [
+    City("Lisbon", "Portugal", "LIS"),
+    City("Porto", "Portugal", "OPO"),
+    City("Barcelona", "Spain", "BCN"),
+    City("Seville", "Spain", "SVQ"),
+    City("Paris", "France", "CDG"),
+    City("Rome", "Italy", "FCO"),
+    City("Berlin", "Germany", "BER"),
+    City("Amsterdam", "Netherlands", "AMS"),
+    City("London", "United Kingdom", "LHR"),
+    City("Marrakech", "Morocco", "RAK"),
+    City("Milan", "Italy", "MXP"),
+    City("Vienna", "Austria", "VIE"),
+]
