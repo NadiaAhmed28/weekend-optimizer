@@ -97,8 +97,10 @@ src/weekend_optimizer/
   providers.py    Flight/Event interfaces + sample implementations
   scoring.py      normalize + blend events and flight cost into a value matrix
   optimizer.py    build the matrix from providers and solve
+  api.py          FastAPI backend exposing plan_trips over HTTP
 examples/         runnable demo
 tests/            unit tests, solver validated against scipy
+frontend/         React (Vite) app that calls the API and shows the plan
 ```
 
 ## Tests
@@ -107,13 +109,37 @@ tests/            unit tests, solver validated against scipy
 python -m pytest tests/ -q
 ```
 
+## Web app
+
+A FastAPI backend exposes the optimizer over HTTP, and a React (Vite) frontend
+lets you enter cities and view the plan in a browser.
+
+Backend:
+
+```bash
+pip install -r requirements-api.txt
+uvicorn weekend_optimizer.api:app --reload --port 8000
+```
+
+Frontend (needs Node.js; in a separate terminal):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open the printed `localhost` URL (default `http://localhost:5173`) — its dev
+server proxies `/api/*` to the backend on port 8000, so both need to be
+running. The backend still uses the sample event/flight providers, same as
+the CLI example.
+
 ## Roadmap
 
 - Ticketmaster Discovery provider for real events
 - A real flight-price provider behind `FlightProvider`
 - Pull favorite artists from Spotify to drive event search
 - Mark weekends as no-travel; pin a city to a fixed weekend
-- FastAPI backend + React front end to enter trips and view the plan
 - Export the plan to `.ics` / Google Calendar
 
 ## License
