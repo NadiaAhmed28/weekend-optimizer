@@ -61,6 +61,23 @@ class SampleFlightProvider(FlightProvider):
         return float(max(30, base + swing))
 
 
+class BudgetCappedFlightProvider(FlightProvider):
+    """Wrap another provider; treat any price above the budget as unavailable.
+
+    An over-budget price becomes None, same as a route the inner provider
+    can't price at all, so it's scored as the worst case rather than
+    excluded outright.
+    """
+
+    def __init__(self, inner: FlightProvider, max_budget: float):
+        self.inner = inner
+        self.max_budget = max_budget
+
+    def price(self, origin: City, dest: City, weekend: Weekend) -> float | None:
+        p = self.inner.price(origin, dest, weekend)
+        return p if p is not None and p <= self.max_budget else None
+
+
 class SampleEventProvider(EventProvider):
     """A few seeded events, including favorite-artist shows worth chasing."""
 

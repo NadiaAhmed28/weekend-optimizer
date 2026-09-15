@@ -10,6 +10,10 @@ from weekend_optimizer import (  # noqa: E402
     plan_trips,
     semester_weekends,
 )
+from weekend_optimizer.providers import (  # noqa: E402
+    BudgetCappedFlightProvider,
+    SampleFlightProvider,
+)
 from weekend_optimizer.scoring import build_value_matrix  # noqa: E402
 
 
@@ -65,3 +69,14 @@ def test_build_value_matrix_handles_missing_price():
     m = build_value_matrix([[8.0, 0.0]], [[None, 50.0]], Weights(0.5, 0.5))
     assert len(m) == 1 and len(m[0]) == 2
     assert all(v >= 0 for v in m[0])
+
+
+def test_budget_capped_flight_provider_hides_overbudget_prices():
+    inner = SampleFlightProvider()
+    wks = semester_weekends(date(2027, 1, 18), date(2027, 5, 15))
+    cheap = City("Seville", "Spain", "SVQ")   # base ~45 EUR
+    pricey = City("Vienna", "Austria", "VIE")  # base ~150 EUR
+    capped = BudgetCappedFlightProvider(inner, max_budget=80)
+
+    assert capped.price(City("Madrid", "Spain", "MAD"), cheap, wks[0]) is not None
+    assert capped.price(City("Madrid", "Spain", "MAD"), pricey, wks[0]) is None
